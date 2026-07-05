@@ -1,125 +1,221 @@
--- [[ ZINNEE HUB - CORE INTERFACE MAIN LUA ]] --
-local CoreGui = game:GetService("CoreGui")
+-- [[ ZINNEE HUB V2 - MAIN INTERFACE (FULL REWRITE) ]] --
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
+-- Xóa UI cũ nếu đang chạy trùng
+if CoreGui:FindFirstChild("ZinNeeMainGui") then
+    CoreGui.ZinNeeMainGui:Destroy()
+end
+
+-- 1. TẠO SCREEN GUI
 local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "ZinNeeCoreContainer"
+MainGui.Name = "ZinNeeMainGui"
 MainGui.ResetOnSpawn = false
 pcall(function() MainGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui") end)
 
--- Khung hiển thị chính
+-- 2. KHUNG CHÍNH (MAIN FRAME)
 local MainFrame = Instance.new("Frame", MainGui)
-MainFrame.Size = UDim2.new(0, 520, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
-MainFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 14)
-MainFrame.Active = true
-MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(140, 0, 255)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 16)
+MainFrame.BorderSizePixel = 0
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 9)
 
--- Cột Menu bên trái (Sidebar)
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(140, 0, 255)
+Stroke.Thickness = 1.8
+
+-- 3. THANH TIÊU ĐỀ (TOPBAR)
+local Topbar = Instance.new("Frame", MainFrame)
+Topbar.Name = "Topbar"
+Topbar.Size = UDim2.new(1, 0, 0, 35)
+Topbar.BackgroundTransparency = 1
+
+local Title = Instance.new("TextLabel", Topbar)
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.Text = "ZINNEE HUB V2 | Premium Edition"
+
+local CloseBtn = Instance.new("TextButton", Topbar)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 2.5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 22
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainGui:Destroy()
+end)
+
+-- 4. THANH MENU BÊN CẠNH (SIDEBAR)
 local Sidebar = Instance.new("Frame", MainFrame)
-Sidebar.Size = UDim2.new(0, 140, 1, 0)
-Sidebar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 8)
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 130, 1, -35)
+Sidebar.Position = UDim2.new(0, 0, 0, 35)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+Sidebar.BorderSizePixel = 0
+
+local SidebarLine = Instance.new("Frame", Sidebar)
+SidebarLine.Size = UDim2.new(0, 1, 1, 0)
+SidebarLine.Position = UDim2.new(1, -1, 0, 0)
+SidebarLine.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+SidebarLine.BorderSizePixel = 0
 
 local TabContainer = Instance.new("ScrollingFrame", Sidebar)
-TabContainer.Size = UDim2.new(1, 0, 1, -20)
-TabContainer.Position = UDim2.new(0, 0, 0, 10)
+TabContainer.Size = UDim2.new(1, -5, 1, -10)
+TabContainer.Position = UDim2.new(0, 0, 0, 5)
 TabContainer.BackgroundTransparency = 1
+TabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 TabContainer.ScrollBarThickness = 0
-local TabLayout = Instance.new("UIListLayout", TabContainer)
-TabLayout.Padding = UDim.new(0, 4)
-TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Vùng hiển thị nội dung bên phải (Pages Container)
-local PageViewer = Instance.new("Frame", MainFrame)
-PageViewer.Size = UDim2.new(0, 360, 1, -20)
-PageViewer.Position = UDim2.new(0, 150, 0, 10)
-PageViewer.BackgroundTransparency = 1
+local TabListLayout = Instance.new("UIListLayout", TabContainer)
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 4)
 
-local pages = {}
-local currentTab = nil
+-- 5. KHUNG CHỨA NỘI DUNG (CONTAINER)
+local ContentContainer = Instance.new("Frame", MainFrame)
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Size = UDim2.new(1, -145, 1, -45)
+ContentContainer.Position = UDim2.new(0, 140, 0, 40)
+ContentContainer.BackgroundTransparency = 1
 
--- Hàm tạo cấu trúc một Tab mới
-local function CreateTab(name)
-    local TabButton = Instance.new("TextButton", TabContainer)
-    TabButton.Size = UDim2.new(0.9, 0, 0, 32)
-    TabButton.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-    TabButton.Text = name
-    TabButton.TextColor3 = Color3.fromRGB(160, 160, 160)
-    TabButton.Font = Enum.Font.GothamSemibold
-    TabButton.TextSize = 11
-    Instance.new("UICorner", TabButton).CornerRadius = UDim.new(0, 4)
+-- HỆ THỐNG QUẢN LÝ TAB & MODULE
+local tabs = {}
+local activeTab = nil
+
+local function CreateTab(tabName)
+    local page = Instance.new("ScrollingFrame", ContentContainer)
+    page.Name = tabName .. "Page"
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.ScrollBarThickness = 2
+    page.Visible = false
     
-    local Page = Instance.new("ScrollingFrame", PageViewer)
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.BackgroundTransparency = 1
-    Page.Visible = false
-    Page.ScrollBarThickness = 2
-    local PageLayout = Instance.new("UIListLayout", Page)
-    PageLayout.Padding = UDim.new(0, 6)
+    local pageLayout = Instance.new("UIListLayout", page)
+    pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    pageLayout.Padding = UDim.new(0, 6)
     
-    pages[name] = Page
-    
-    TabButton.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.Visible = false end
-        Page.Visible = true
-        TabButton.TextColor3 = Color3.fromRGB(140, 0, 255)
+    local tabBtn = Instance.new("TextButton", TabContainer)
+    tabBtn.Size = UDim2.new(0.9, 0, 0, 32)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+    tabBtn.Text = "  " .. tabName
+    tabBtn.TextColor3 = Color3.fromRGB(160, 160, 160)
+    tabBtn.Font = Enum.Font.GothamSemibold
+    tabBtn.TextSize = 12
+    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 4)
+    Instance.new("UIStroke", tabBtn).Color = Color3.fromRGB(30, 30, 35)
+
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, t in pairs(tabs) do
+            t.page.Visible = false
+            t.btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+            t.btn.TextColor3 = Color3.fromRGB(160, 160, 160)
+        end
+        page.Visible = true
+        tabBtn.BackgroundColor3 = Color3.fromRGB(35, 20, 60)
+        tabBtn.TextColor3 = Color3.fromRGB(140, 0, 255)
     end)
-    
-    return Page
+
+    tabs[tabName] = {page = page, btn = tabBtn}
+    return page
 end
 
--- Hàm tạo nút tính năng thực thi lệnh bên trong các Tab
-local function CreateFunctionButton(parentPage, text, githubFileName)
+-- HÀM TẠO NÚT TÍNH NĂNG (ĐÃ FIX LINK USER ĐÚNG CỦA ÔNG)
+local function AddFunctionButton(parentPage, btnText, githubFileName)
     local btn = Instance.new("TextButton", parentPage)
-    btn.Size = UDim2.new(0.95, 0, 0, 36)
-    btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    btn.Text = text
+    btn.Size = UDim2.new(0.96, 0, 0, 38)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    btn.Text = btnText
     btn.TextColor3 = Color3.fromRGB(230, 230, 230)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 12
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
+    local btnStroke = Instance.new("UIStroke", btn)
+    btnStroke.Color = Color3.fromRGB(35, 35, 40)
+
     btn.MouseButton1Click:Connect(function()
-        btn.TextColor3 = Color3.fromRGB(140, 0, 255)
-        task.wait(0.1)
-        btn.TextColor3 = Color3.fromRGB(230, 230, 230)
-        -- Gọi module từ xa
-        local targetURL = "https://raw.githubusercontent.com/Cari1501/ZinNee-Hub2/main/" .. githubFileName
+        btnStroke.Color = Color3.fromRGB(140, 0, 255)
+        task.wait(0.15)
+        btnStroke.Color = Color3.fromRGB(35, 35, 40)
+        
+        -- Đường dẫn chuẩn hóa đến tài khoản duc13092011-sudo
+        local targetURL = "https://raw.githubusercontent.com/duc13092011-sudo/ZinNee-Hub2/main/" .. githubFileName
+        
         local success, err = pcall(function()
             loadstring(game:HttpGet(targetURL))()
         end)
-        if not success then warn("Lỗi nạp Module: " .. tostring(err)) end
+        
+        if not success then 
+            warn("ZinNee Hub Error: Không thể tải module " .. githubFileName .. " -> " .. tostring(err)) 
+        end
     end)
 end
 
--- ========================================================
--- 📑 KHỞI TẠO CÁC PHÂN MỤC MENU (TABS BẮT BUỘC)
--- ========================================================
+-- 6. KHỞI TẠO CÁC TÀB GIAO DIỆN
+local HomeTab = CreateTab("Trang Chủ")
+local CombatTab = CreateTab("Combat & ESP")
+local MotionTab = CreateTab("Di Chuyển")
 
-local PageCombat = CreateTab("Aim & ESP")
-CreateFunctionButton(PageCombat, "🚀 Kích hoạt AimBot & ESP System", "aim_esp.lua")
+-- Thêm nội dung cho Tab Trang Chủ
+local WelcomeText = Instance.new("TextLabel", HomeTab)
+WelcomeText.Size = UDim2.new(0.96, 0, 0, 40)
+WelcomeText.BackgroundTransparency = 1
+WelcomeText.Font = Enum.Font.Gotham
+WelcomeText.TextColor3 = Color3.fromRGB(180, 180, 180)
+WelcomeText.TextSize = 12
+WelcomeText.Text = "Chào mừng ông đã quay trở lại với ZinNee Hub V2!\nChọn các tab bên cạnh để kích hoạt chức năng."
 
-local PageMovement = CreateTab("Movement")
-CreateFunctionButton(PageMovement, "⚡ Kích hoạt Fly / Speed / Noclip Mod", "movement.lua")
+-- TÍCH HỢP MODULE VÀO CÁC NÚT BẤM
+AddFunctionButton(CombatTab, "Kích hoạt AimBot & ESP", "aim_esp.lua")
+AddFunctionButton(MotionTab, "Kích hoạt Speed & Fly", "movement.lua")
 
-local PageBoombox = CreateTab("Boombox ID")
-CreateFunctionButton(PageBoombox, "🎵 Mở bảng quản lý âm thanh Boombox", "boombox.lua")
+-- Mặc định mở Tab đầu tiên
+tabs["Trang Chủ"].page.Visible = true
+tabs["Trang Chủ"].btn.BackgroundColor3 = Color3.fromRGB(35, 20, 60)
+tabs["Trang Chủ"].btn.TextColor3 = Color3.fromRGB(140, 0, 255)
 
-local PageClicker = CreateTab("Auto Clicker")
-CreateFunctionButton(PageClicker, "🖱️ Bật/Tắt Auto Click siêu tốc", "autoclicker.lua")
+-- 7. CƠ CHẾ KÉO THẢ GIAO DIỆN (SMOOTH DRAGGING)
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
 
-local PageTeleport = CreateTab("Teleport")
-CreateFunctionButton(PageTeleport, "📍 Khởi tạo hệ thống lưu Waypoints", "teleport.lua")
+Topbar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
 
-local PageOptimization = CreateTab("Optimization")
-CreateFunctionButton(PageOptimization, "⚙️ Tối ưu hóa Ram / Khử Lag & Boost FPS", "optimization.lua")
+Topbar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
 
-local PageTroll = CreateTab("Server Intervention")
-CreateFunctionButton(PageTroll, "⚠️ Thực thi công cụ Troll Server (Admin/Kick/Ban)", "troll_server.lua")
-
--- Mặc định hiển thị Tab đầu tiên khi load xong
-if pages["Aim & ESP"] then pages["Aim & ESP"].Visible = true end
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
