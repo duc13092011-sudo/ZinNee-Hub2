@@ -1,11 +1,10 @@
--- [[ ZINNEE HUB - BOOTLOADER LUA ]] --
+-- [[ ZINNEE HUB - BOOTLOADER LUA (FIXED LINK) ]] --
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Khởi tạo UI Loading
 local LoadGui = Instance.new("ScreenGui")
 LoadGui.Name = "ZinNeeLoader"
 LoadGui.ResetOnSpawn = false
@@ -48,7 +47,6 @@ BarFill.Size = UDim2.new(0, 0, 1, 0)
 BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
 Instance.new("UICorner", BarFill)
 
--- Tiến trình chạy Loading mô phỏng thực tế
 local steps = {
     {status = "Connecting to database...", progress = 0.15, delay = 0.8},
     {status = "Loading UI elements...", progress = 0.45, delay = 1.2},
@@ -63,47 +61,10 @@ for _, step in ipairs(steps) do
     task.wait(step.delay)
 end
 
--- Đứng hình 3 giây khi hoàn thành (Tạo độ Real)
 Status.Text = "Execution stabilization (3s)..."
 task.wait(3)
 
--- Hủy UI Loading và gọi Main Menu
 LoadGui:Destroy()
 
--- Thay URL bằng link GitHub của ông
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Cari1501/ZinNee-Hub2/main/Main.lua"))()
-
--- Tiêu đề
-local Title = Instance.new("TextLabel", LoadFrame)
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.Text = "🔮 ZinNee Hub v4.0"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-
--- Thanh Loading bên dưới
-local BarBg = Instance.new("Frame", LoadFrame)
-BarBg.Size = UDim2.new(0.8, 0, 0, 10)
-BarBg.Position = UDim2.new(0.1, 0, 0.6, 0)
-BarBg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
-
-local BarFill = Instance.new("Frame", BarBg)
-BarFill.Size = UDim2.new(0, 0, 1, 0)
-BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
-Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
-
--- Hiệu ứng chạy thanh phần trăm và tải Main Menu
-task.spawn(function()
-    TweenService:Create(BarFill, TweenInfo.new(2.2, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-    task.wait(2.3)
-    
-    -- Tự xóa giao diện loading sau khi hoàn thành
-    LoadingGui:Destroy()
-    
-    -- GỌI FILE MAIN TỪ REPOSITORY MỚI (ZinNee-Hub2)
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/duc13092011-sudo/ZinNee-Hub2/main/Main.lua", true))()
-    end)
-end)
+-- ĐÃ SỬA: Đường link gọi Main.lua chuẩn của ông
+loadstring(game:HttpGet("https://raw.githubusercontent.com/duc13092011-sudo/ZinNee-Hub2/main/Main.lua"))()
