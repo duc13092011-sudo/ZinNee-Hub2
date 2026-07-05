@@ -188,4 +188,4 @@ _G.ZinNeeAimESPConnection = RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("🔮 ZinNee Hub V2: Module AimBot & ESP Loaded Successfully!")
+print("🔮 ZinNee Hub V2: Menu AimBot & ESP Loaded Successfully!")
