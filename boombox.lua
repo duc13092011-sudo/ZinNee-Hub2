@@ -234,4 +234,4 @@ Footer.BackgroundTransparency = 1
 Footer.Font = Enum.Font.SourceSansItalic
 Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
 Footer.TextSize = 10
-Footer.Text = "Tip: Paste Audio ID into search bar and press Enter to play"
+Footer.Text = "TIP: Paste Audio ID into search bar and press Enter to play"
