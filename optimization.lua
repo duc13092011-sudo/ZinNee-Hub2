@@ -60,4 +60,4 @@ end)
 settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.DefaultAuto
 settings().Physics.ThrottleAdjustTime = 1
 
-print("🚀 ZinNee Hub V2: FPS Booster Module Executed Successfully! Enjoy High Performance.")
+print("🚀 ZinNeee Hub V2: FPS Booster Module Executed Successfully! Enjoy High Performance.")
