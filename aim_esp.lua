@@ -1,191 +1,265 @@
--- [[ ZINNEE HUB V2 - MODULE: AIMBOT & ESP UNIVERSAL ]] --
+-- [[ ZINNEE MENU - COMBAT PRO EDITION (REBUILT 2026) ]] --
 local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- CẤU HÌNH HỆ THỐNG (CÓ THỂ TỰ ĐIỀU CHỈNH)
-local Settings = {
-    AimBot = {
-        Enabled = true,
-        Key = Enum.UserInputType.MouseButton2, -- Giữ chuột phải để Aim
-        TargetPart = "HumanoidRootPart",      -- Bộ phận ngắm (Head / HumanoidRootPart)
-        Smoothness = 0.15,                    -- Độ mượt khi ghì tâm (càng nhỏ càng mượt, từ 0.05 - 1)
-        TeamCheck = false                     -- Bật true nếu không muốn ngắm đồng đội
-    },
-    FOV = {
-        Visible = true,
-        Radius = 120,                         -- Độ rộng vòng quét Aim
-        Color = Color3.fromRGB(140, 0, 255),  -- Màu tím nhạt neon
-        Thickness = 1
-    },
-    ESP = {
-        Enabled = true,
-        Boxes = true,                         -- Khung viền phát sáng xuyên tường
-        Tracers = true,                       -- Kẻ đường định vị
-        BoxColor = Color3.fromRGB(140, 0, 255),
-        TracerColor = Color3.fromRGB(255, 255, 255)
-    }
-}
+-- Biến lưu trạng thái chức năng
+local currentWalkSpeed = 16
+local flying = false
+local noclipActive = false
+local aimbotEnabled = false
+local aimbotFOV = 120
+local hitboxEnabled = false
+local hitboxSize = 10
+local espEnabled = false
 
--- DỌN DẸP HỆ THỐNG CŨ NẾU CHẠY TRÙNG
-if _G.ZinNeeAimESPConnection then
-    _G.ZinNeeAimESPConnection:Disconnect()
+-- Khởi tạo Drawing API cho Vòng FOV cố định
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 1
+fovCircle.NumSides = 60
+fovCircle.Radius = aimbotFOV
+fovCircle.Filled = false
+fovCircle.Color = Color3.fromRGB(140, 0, 255) -- Màu tím Neon chủ đạo
+fovCircle.Visible = false
+
+-- ScreenGui Chính
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ZinNeeMainCore"
+ScreenGui.ResetOnSpawn = false
+pcall(function() ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui") end)
+
+-- ==========================================
+-- 🎨 GIAO DIỆN (NỀN ĐEN MỜ, VIỀN TÍM NEON)
+-- ==========================================
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 260, 0, 430)
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -215)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+-- Viền Tím Neon
+local FrameStroke = Instance.new("UIStroke", MainFrame)
+FrameStroke.Color = Color3.fromRGB(140, 0, 255)
+FrameStroke.Thickness = 2
+
+-- Tiêu đề RGB Cầu Vồng
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "ZinNeeMenu"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Position = UDim2.new(0, 0, 0, 0)
+
+task.spawn(function()
+    while MainFrame and MainFrame.Parent do
+        for h = 0, 1, 0.005 do
+            if not Title or not Title.Parent then break end
+            Title.TextColor3 = Color3.fromHSV(h, 0.8, 1)
+            task.wait(0.01)
+        end
+    end
+end)
+
+-- Nút nổi thu phóng
+local FloatBtn = Instance.new("TextButton", ScreenGui)
+FloatBtn.Size = UDim2.new(0, 50, 0, 50)
+FloatBtn.Position = UDim2.new(0, 20, 0, 120)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+FloatBtn.Text = "Z"
+FloatBtn.TextColor3 = Color3.fromRGB(140, 0, 255)
+FloatBtn.Font = Enum.Font.GothamBold
+FloatBtn.Draggable = true
+Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", FloatBtn).Color = Color3.fromRGB(140, 0, 255)
+FloatBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+-- Danh sách tính năng (ScrollingFrame)
+local Container = Instance.new("ScrollingFrame", MainFrame)
+Container.Size = UDim2.new(1, 0, 1, -75)
+Container.Position = UDim2.new(0, 0, 0, 40)
+Container.BackgroundTransparency = 1
+Container.ScrollBarThickness = 2
+Container.CanvasSize = UDim2.new(0, 0, 0, 500)
+local ListLayout = Instance.new("UIListLayout", Container)
+ListLayout.Padding = UDim.new(0, 5)
+ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Hàm tạo Nút Bật/Tắt mẫu
+local function createToggle(text, callback)
+    local btn = Instance.new("TextButton", Container)
+    btn.Size = UDim2.new(0.9, 0, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.Text = text .. " [OFF]"
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 11
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = text .. (state and " [ON]" or " [OFF]")
+        btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+        callback(state)
+    end)
 end
-if _G.ZinNeeFOVObj then
-    _G.ZinNeeFOVObj:Destroy()
-end
-if _G.ZinNeeESPFolder then
-    _G.ZinNeeESPFolder:Destroy()
-end
 
--- 1. TẠO VÒNG FOV CHO AIMBOT
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-FOVCircle.Radius = Settings.FOV.Radius
-FOVCircle.Color = Settings.FOV.Color
-FOVCircle.Thickness = Settings.FOV.Thickness
-FOVCircle.Filled = false
-FOVCircle.Visible = Settings.FOV.Visible
-_G.ZinNeeFOVObj = FOVCircle
+-- ==========================================
+-- 🎯 CƠ CHẾ AIMBOT CỐ ĐỊNH TÂM - LOCK HEAD
+-- ==========================================
+local function getClosestPlayerToCenter()
+    local closestTarget = nil
+    local shortestDistance = math.huge
+    
+    -- Lấy vị trí trung tâm chính xác của màn hình
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
--- Khởi tạo Folder chứa đồ họa ESP
-local ESPFolder = Instance.new("Folder", game:GetService("CoreGui"))
-ESPFolder.Name = "ZinNee_ESP_Storage"
-_G.ZinNeeESPFolder = ESPFolder
-
--- 2. HÀM TÌM MỤC TIÊU GẦN TÂM CHUỘT NHẤT
-local function GetClosestPlayer()
-    local ClosestPlayer = nil
-    local ShortestDistance = math.huge
-    local MousePos = UserInputService:GetMouseLocation()
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(Settings.AimBot.TargetPart) and player.Character:FindFirstChildOfClass("Humanoid") and player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local head = p.Character:FindFirstChild("Head")
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
             
-            -- Kiểm tra đội nếu bật TeamCheck
-            if Settings.AimBot.TeamCheck and player.Team == LocalPlayer.Team then
-                continue
-            end
-
-            local TargetPart = player.Character[Settings.AimBot.TargetPart]
-            local ScreenPos, OnScreen = Camera:WorldToViewportPoint(TargetPart.Position)
-
-            if OnScreen then
-                local Distance = (Vector2.new(ScreenPos.X, ScreenPos.Y) - MousePos).Magnitude
-                if Distance < ShortestDistance and Distance <= Settings.FOV.Radius then
-                    ShortestDistance = Distance
-                    ClosestPlayer = player
+            -- Kiểm tra đối thủ còn sống và có bộ phận Đầu
+            if head and hum and hum.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                
+                if onScreen then
+                    -- Tính khoảng cách từ ĐẦU mục tiêu đến TÂM màn hình
+                    local distanceToCenter = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                    
+                    -- Nếu nằm trong phạm vi FOV cài đặt và gần tâm nhất
+                    if distanceToCenter < shortestDistance and distanceToCenter <= aimbotFOV then
+                        shortestDistance = distanceToCenter
+                        closestTarget = head
+                    end
                 end
             end
         end
     end
-    return ClosestPlayer
+    return closestTarget
 end
 
--- 3. HÀM QUẢN LÝ VẼ ĐỒ HỌA ESP CHO TỪNG NGƯỜI CHƠI
-local TracersCache = {}
-
-local function ApplyESP(player)
-    local function UpdateCharacterESP()
-        local char = player.Character
-        if not char then return end
-
-        -- Tạo Highlight Box (Khung viền phát sáng xuyên tường)
-        if Settings.ESP.Boxes and not char:FindFirstChild("ZinNeeHighlight") then
-            local hl = Instance.new("Highlight")
-            hl.Name = "ZinNeeHighlight"
-            hl.Parent = char
-            hl.FillColor = Settings.ESP.BoxColor
-            hl.FillTransparency = 0.6
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-            hl.OutlineTransparency = 0.1
-            hl.Adornee = char
-        end
-
-        -- Tạo Tracer Line (Đường kẻ định vị)
-        if Settings.ESP.Tracers and not TracersCache[player] then
-            local line = Drawing.new("Line")
-            line.Color = Settings.ESP.TracerColor
-            line.Thickness = 1
-            line.Transparency = 0.8
-            TracersCache[player] = line
-        end
-    end
-
-    player.CharacterAdded:Connect(function()
-        task.wait(0.5)
-        UpdateCharacterESP()
-    end)
-    if player.Character then UpdateCharacterESP() end
-end
-
--- Bật ESP cho toàn bộ người chơi đang có trong phòng
-for _, p in ipairs(Players:GetPlayers()) do
-    if p ~= LocalPlayer then ApplyESP(p) end
-end
-Players.PlayerAdded:Connect(ApplyESP)
-
--- Xóa dữ liệu vẽ khi người chơi thoát
-Players.PlayerRemoving:Connect(function(player)
-    if TracersCache[player] then
-        TracersCache[player]:Destroy()
-        TracersCache[player] = nil
-    end
+-- Ô nhập thông số FOV
+local FovInput = Instance.new("TextBox", Container)
+FovInput.Size = UDim2.new(0.9, 0, 0, 30)
+FovInput.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+FovInput.Text = "Phạm vi FOV: 120"
+FovInput.TextColor3 = Color3.fromRGB(180, 180, 180)
+FovInput.Font = Enum.Font.GothamSemibold
+FovInput.TextSize = 11
+Instance.new("UICorner", FovInput).CornerRadius = UDim.new(0, 6)
+FovInput.FocusLost:Connect(function()
+    local num = tonumber(FovInput.Text:match("%d+"))
+    if num then aimbotFOV = math.clamp(num, 10, 600) else aimbotFOV = 120 end
+    FovInput.Text = "Phạm vi FOV: " .. aimbotFOV
 end)
 
--- 4. VÒNG LẶP HỆ THỐNG (LOOP UPDATE BẰNG RENDERSTEPPED)
-local IsAiming = false
+createToggle("🎯 Aimbot Lock Đầu", function(v) aimbotEnabled = v end)
+createToggle("📦 Mở Rộng Hitbox", function(v) hitboxEnabled = v end)
+createToggle("👁️ ESP Highlight & Line", function(v) espEnabled = v end)
 
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Settings.AimBot.Key then
-        IsAiming = true
-    end
-end)
+-- Vòng lặp RenderStepped (Xử lý Aim, FOV và ESP)
+local highlights = {}
+local lines = {}
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Settings.AimBot.Key then
-        IsAiming = false
-    end
-end)
-
-_G.ZinNeeAimESPConnection = RunService.RenderStepped:Connect(function()
-    -- Cập nhật lại vị trí vòng tròn FOV theo kích thước màn hình thực tế
-    local MousePos = UserInputService:GetMouseLocation()
-    FOVCircle.Position = MousePos
+RunService.RenderStepped:Connect(function()
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
-    -- XỬ LÝ AIMBOT
-    if Settings.AimBot.Enabled and IsAiming then
-        local TargetPlayer = GetClosestPlayer()
-        if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild(Settings.AimBot.TargetPart) then
-            local TargetPart = TargetPlayer.Character[Settings.AimBot.TargetPart]
-            local TargetPos = Camera:WorldToViewportPoint(TargetPart.Position)
-            
-            -- Di chuyển Camera mượt mà (Interpolation) hướng về mục tiêu
-            local CurrentCamCFrame = Camera.CFrame
-            local TargetCFrame = CFrame.new(CurrentCamCFrame.Position, TargetPart.Position)
-            Camera.CFrame = CurrentCamCFrame:Lerp(TargetCFrame, Settings.AimBot.Smoothness)
+    -- Xử lý Aimbot Cố định tâm
+    if aimbotEnabled then
+        fovCircle.Position = screenCenter
+        fovCircle.Radius = aimbotFOV
+        fovCircle.Visible = true
+
+        local targetHead = getClosestPlayerToCenter()
+        if targetHead then
+            -- Ghim chặt Camera trực tiếp vào Đầu đối thủ, triệt tiêu độ lệch
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetHead.Position)
         end
+    else
+        fovCircle.Visible = false
     end
 
-    -- XỬ LÝ CẬP NHẬT TRACERS CỦA ESP
-    for player, line in pairs(TracersCache) do
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChildOfClass("Humanoid") and player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-            local hrp = player.Character.HumanoidRootPart
-            local ScreenPos, OnScreen = Camera:WorldToViewportPoint(hrp.Position)
-
-            if OnScreen and Settings.ESP.Tracers then
-                line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y) -- Gốc từ đáy giữa màn hình
-                line.To = Vector2.new(ScreenPos.X, ScreenPos.Y)
-                line.Visible = true
+    -- Xử lý ESP Line 0.2 và Highlight
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if espEnabled and hrp then
+                if not highlights[p] then
+                    local hl = Instance.new("Highlight", p.Character)
+                    hl.FillColor = Color3.fromRGB(140, 0, 255)
+                    highlights[p] = hl
+                end
+                if not lines[p] then
+                    local l = Drawing.new("Line")
+                    l.Thickness = 0.2
+                    l.Color = Color3.fromRGB(140, 0, 255)
+                    lines[p] = l
+                end
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    lines[p].From = Vector2.new(screenCenter.X, Camera.ViewportSize.Y)
+                    lines[p].To = Vector2.new(pos.X, pos.Y)
+                    lines[p].Visible = true
+                else
+                    lines[p].Visible = false
+                end
             else
-                line.Visible = false
+                if highlights[p] then highlights[p]:Destroy() highlights[p] = nil end
+                if lines[p] then lines[p]:Destroy() lines[p] = nil end
             end
-        else
-            line.Visible = false
         end
     end
 end)
 
-print("🔮 ZinNee Hub V2: Menu AimBot & ESP Loaded Successfully!")
+-- ==========================================
+-- 📦 HITBOX EXPANDER LOOP
+-- ==========================================
+task.spawn(function()
+    while task.wait(0.5) do
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    if hitboxEnabled then
+                        hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                        hrp.Transparency = 0.7
+                        hrp.CanCollide = false
+                    else
+                        hrp.Size = Vector3.new(2, 2, 1)
+                        hrp.Transparency = 1
+                        hrp.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ==========================================
+-- 📊 BẢNG THEO DÕI HIỆU NĂNG (FPS / PING)
+-- ==========================================
+local Stats = Instance.new("TextLabel", MainFrame)
+Stats.Size = UDim2.new(1, 0, 0, 25)
+Stats.Position = UDim2.new(0, 0, 1, -25)
+Stats.BackgroundTransparency = 1
+Stats.TextColor3 = Color3.fromRGB(0, 255, 200)
+Stats.Text = "FPS: -- | PING: -- ms"
+Stats.Font = Enum.Font.Code
+Stats.TextSize = 10
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local fps = math.floor(1 / RunService.RenderStepped:Wait())
+        local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+        Stats.Text = "🟢 FPS: " .. fps .. " | ⚡ PING: " .. ping .. " ms"
+    end
+end)
