@@ -1,143 +1,146 @@
--- [[ ZINNEE HUB - LOADING SCREEN (LOGO EDITION - FIX LOCK BUG) ]] --
-print("⚙️ ZinNeeLoader: Đang khởi tạo tiến trình...")
+-- [[ ZINNEE HUB - LOADING SCREEN (ULTRA SAFE & DIAGNOSTIC VERSION) ]] --
+warn("✨ [DIAGNOSTIC] 1. Script bắt đầu chạy...")
 
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
+
+-- Chống kẹt: Đợi cho đến khi hệ thống nhận diện được Người chơi
 local LocalPlayer = Players.LocalPlayer
-
--- ==========================================
--- ⚙️ CẤU HÌNH LOGO
--- ==========================================
-local LOGO_IMAGE_ID = "rbxassetid://0" -- thay số 0 bằng ID ảnh của bạn[span_1](start_span)[span_1](end_span)
-local LOGO_TEXT = "ZN" --[span_2](start_span)[span_2](end_span)
-
--- 1. DỌN DẸP GIAO DIỆN CŨ TRÊN CẢ 2 PHÂN VÙNG ĐỂ TRÁNH KẸT SCRIPT
-if CoreGui:FindFirstChild("ZinNeeLoader") then CoreGui.ZinNeeLoader:Destroy() end
-if LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("ZinNeeLoader") then LocalPlayer.PlayerGui.ZinNeeLoader:Destroy() end
-
-local LoadGui = Instance.new("ScreenGui")
-LoadGui.Name = "ZinNeeLoader[span_3](start_span)"[span_3](end_span)
-LoadGui.ResetOnSpawn = false[span_4](start_span)[span_4](end_span)
-
--- SỬA LỖI CHÍNH: Ép hệ thống phân tầng chuẩn xác, nếu xịt CoreGui là nhảy ngay về PlayerGui
-local success, _ = pcall(function()
-    LoadGui.Parent = CoreGui
-end)
-
-if not success or LoadGui.Parent == nil then
-    LoadGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    print("📶 ZinNeeLoader: Chạy trên phân vùng PlayerGui (Thành công)")
-else
-    print("📶 ZinNeeLoader: Chạy trên phân vùng CoreGui (Thành công)")
+local attempts = 0
+while not LocalPlayer and attempts < 100 do
+    task.wait(0.1)
+    LocalPlayer = Players.LocalPlayer
+    attempts = attempts + 1
 end
 
--- 2. KHỞI TẠO KHUNG NỀN CHÍNH
+if not LocalPlayer then
+    warn("❌ [DIAGNOSTIC] LỖI: Không tìm thấy LocalPlayer!")
+    return
+end
+warn("✨ [DIAGNOSTIC] 2. Đã nhận diện Player: " .. tostring(LocalPlayer.Name))
+
+-- Chống nghẽn vô hạn: Đợi PlayerGui tối đa 10 giây
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
+if not PlayerGui then
+    warn("❌ [DIAGNOSTIC] LỖI: Game không chịu tải phân vùng PlayerGui!")
+    return
+end
+warn("✨ [DIAGNOSTIC] 3. Đã tìm thấy PlayerGui thành công!")
+
+-- Dọn dẹp bản cũ nếu có để tránh xung đột dữ liệu
+if PlayerGui:FindFirstChild("ZinNeeLoader") then 
+    PlayerGui.ZinNeeLoader:Destroy() 
+    warn("🧹 [DIAGNOSTIC] Đã dọn dẹp bộ Loader cũ kẹt trong máy.")
+end
+
+-- Khởi tạo ScreenGui trực tiếp vào PlayerGui (Bỏ qua CoreGui để chống chết luồng)
+local LoadGui = Instance.new("ScreenGui")
+LoadGui.Name = "ZinNeeLoader"
+LoadGui.ResetOnSpawn = false
+LoadGui.Parent = PlayerGui
+warn("✨ [DIAGNOSTIC] 4. Đã khởi tạo ScreenGui thành công!")
+
+-- Cấu hình hiển thị chữ thay thế
+local LOGO_TEXT = "ZN"
+
+-- Khung nền chính
 local BG = Instance.new("Frame", LoadGui)
-BG.Size = UDim2.new(0, 0, 0, 0) -- Khởi tạo bằng 0 để làm hiệu ứng bung[span_5](start_span)[span_5](end_span)
-BG.Position = UDim2.new(0.5, 0, 0.5, 0)[span_6](start_span)[span_6](end_span)
-BG.BackgroundColor3 = Color3.fromRGB(12, 12, 12)[span_7](start_span)[span_7](end_span)
-BG.ClipsDescendants = true[span_8](start_span)[span_8](end_span)
-Instance.new("UICorner", BG).CornerRadius = UDim.new(0, 10)[span_9](start_span)[span_9](end_span)
+BG.Size = UDim2.new(0, 0, 0, 0) -- Bắt đầu từ 0 để bung ra
+BG.Position = UDim2.new(0.5, 0, 0.5, 0)
+BG.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+BG.ClipsDescendants = true
+Instance.new("UICorner", BG).CornerRadius = UDim.new(0, 10)
 
 local Stroke = Instance.new("UIStroke", BG)
-Stroke.Color = Color3.fromRGB(140, 0, 255)[span_10](start_span)[span_10](end_span)
-Stroke.Thickness = 1.5[span_11](start_span)[span_11](end_span)
+Stroke.Color = Color3.fromRGB(140, 0, 255)
+Stroke.Thickness = 1.5
 
--- ==========================================
--- 🖼️ LOGO TRUNG TÂM
--- ==========================================
+-- Vòng giữ Logo
 local LogoHolder = Instance.new("Frame", BG)
-LogoHolder.Size = UDim2.new(0, 56, 0, 56)[span_12](start_span)[span_12](end_span)
-LogoHolder.Position = UDim2.new(0.5, -28, 0, 14)[span_13](start_span)[span_13](end_span)
-LogoHolder.BackgroundColor3 = Color3.fromRGB(20, 20, 20)[span_14](start_span)[span_14](end_span)
-Instance.new("UICorner", LogoHolder).CornerRadius = UDim.new(1, 0)[span_15](start_span)[span_15](end_span)
+LogoHolder.Size = UDim2.new(0, 56, 0, 56)
+LogoHolder.Position = UDim2.new(0.5, -28, 0, 14)
+LogoHolder.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", LogoHolder).CornerRadius = UDim.new(1, 0)
 
 local LogoStroke = Instance.new("UIStroke", LogoHolder)
-LogoStroke.Color = Color3.fromRGB(140, 0, 255)[span_16](start_span)[span_16](end_span)
-LogoStroke.Thickness = 2[span_17](start_span)[span_17](end_span)
-
-local LogoImage = Instance.new("ImageLabel", LogoHolder)
-LogoImage.Size = UDim2.new(1, -10, 1, -10)[span_18](start_span)[span_18](end_span)
-LogoImage.Position = UDim2.new(0, 5, 0, 5)[span_19](start_span)[span_19](end_span)
-LogoImage.BackgroundTransparency = 1[span_20](start_span)[span_20](end_span)
-LogoImage.Image = LOGO_IMAGE_ID[span_21](start_span)[span_21](end_span)
-Instance.new("UICorner", LogoImage).CornerRadius = UDim.new(1, 0)[span_22](start_span)[span_22](end_span)
+LogoStroke.Color = Color3.fromRGB(140, 0, 255)
+LogoStroke.Thickness = 2
 
 local LogoFallbackText = Instance.new("TextLabel", LogoHolder)
-LogoFallbackText.Size = UDim2.new(1, 0, 1, 0)[span_23](start_span)[span_23](end_span)
-LogoFallbackText.BackgroundTransparency = 1[span_24](start_span)[span_24](end_span)
-LogoFallbackText.Font = Enum.Font.GothamBold[span_25](start_span)[span_25](end_span)
-LogoFallbackText.TextColor3 = Color3.fromRGB(140, 0, 255)[span_26](start_span)[span_26](end_span)
-LogoFallbackText.TextSize = 20[span_27](start_span)[span_27](end_span)
-LogoFallbackText.Text = LOGO_TEXT[span_28](start_span)[span_28](end_span)
-LogoFallbackText.Visible = (LOGO_IMAGE_ID == "rbxassetid://0")[span_29](start_span)[span_29](end_span)
+LogoFallbackText.Size = UDim2.new(1, 0, 1, 0)
+LogoFallbackText.BackgroundTransparency = 1
+LogoFallbackText.Font = Enum.Font.GothamBold
+LogoFallbackText.TextColor3 = Color3.fromRGB(140, 0, 255)
+LogoFallbackText.TextSize = 20
+LogoFallbackText.Text = LOGO_TEXT
 
+-- Vòng xoay neon xanh
 local Spinner = Instance.new("Frame", LogoHolder)
-Spinner.Size = UDim2.new(1, 8, 1, 8)[span_30](start_span)[span_30](end_span)
-Spinner.Position = UDim2.new(0, -4, 0, -4)[span_31](start_span)[span_31](end_span)
-Spinner.BackgroundTransparency = 1[span_32](start_span)[span_32](end_span)
+Spinner.Size = UDim2.new(1, 8, 1, 8)
+Spinner.Position = UDim2.new(0, -4, 0, -4)
+Spinner.BackgroundTransparency = 1
 local SpinnerStroke = Instance.new("UIStroke", Spinner)
-SpinnerStroke.Color = Color3.fromRGB(0, 255, 200)[span_33](start_span)[span_33](end_span)
-SpinnerStroke.Thickness = 2[span_34](start_span)[span_34](end_span)
-Instance.new("UICorner", Spinner).CornerRadius = UDim.new(1, 0)[span_35](start_span)[span_35](end_span)
+SpinnerStroke.Color = Color3.fromRGB(0, 255, 200)
+SpinnerStroke.Thickness = 2
+Instance.new("UICorner", Spinner).CornerRadius = UDim.new(1, 0)
 
 task.spawn(function()
     while LoadGui and LoadGui.Parent do
-        Spinner.Rotation = (Spinner.Rotation + 4) % 360[span_36](start_span)[span_36](end_span)
-        task.wait(0.03)[span_37](start_span)[span_37](end_span)
+        Spinner.Rotation = (Spinner.Rotation + 4) % 360
+        task.wait(0.03)
     end
 end)
 
--- ==========================================
--- 🔤 TIÊU ĐỀ RGB & TIẾN TRÌNH
--- ==========================================
+-- Tiêu đề RGB
 local Title = Instance.new("TextLabel", BG)
-Title.Size = UDim2.new(1, 0, 0, 24)[span_38](start_span)[span_38](end_span)
-Title.Position = UDim2.new(0, 0, 0, 76)[span_39](start_span)[span_39](end_span)
-Title.BackgroundTransparency = 1[span_40](start_span)[span_40](end_span)
-Title.Font = Enum.Font.GothamBold[span_41](start_span)[span_41](end_span)
-Title.TextSize = 16[span_42](start_span)[span_42](end_span)
-Title.Text = "ZINNEE HUB[span_43](start_span)"[span_43](end_span)
+Title.Size = UDim2.new(1, 0, 0, 24)
+Title.Position = UDim2.new(0, 0, 0, 76)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Text = "ZINNEE HUB"
 
 task.spawn(function()
     while LoadGui and LoadGui.Parent do
-        for h = 0, 1, 0.01 do[span_44](start_span)[span_44](end_span)
-            if not Title.Parent then break end[span_45](start_span)[span_45](end_span)
-            Title.TextColor3 = Color3.fromHSV(h, 0.75, 1)[span_46](start_span)[span_46](end_span)
-            task.wait(0.02)[span_47](start_span)[span_47](end_span)
+        for h = 0, 1, 0.01 do
+            if not Title.Parent then break end
+            Title.TextColor3 = Color3.fromHSV(h, 0.75, 1)
+            task.wait(0.02)
         end
     end
 end)
 
+-- Các thông số tiến trình thanh loading
 local Status = Instance.new("TextLabel", BG)
-Status.Size = UDim2.new(1, 0, 0, 20)[span_48](start_span)[span_48](end_span)
-Status.Position = UDim2.new(0, 0, 0, 104)[span_49](start_span)[span_49](end_span)
-Status.BackgroundTransparency = 1[span_50](start_span)[span_50](end_span)
-Status.Font = Enum.Font.GothamSemibold[span_51](start_span)[span_51](end_span)
-Status.TextColor3 = Color3.fromRGB(150, 150, 150)[span_52](start_span)[span_52](end_span)
-Status.TextSize = 11[span_53](start_span)[span_53](end_span)
-Status.Text = "Đang khởi động...[span_54](start_span)"[span_54](end_span)
+Status.Size = UDim2.new(1, 0, 0, 20)
+Status.Position = UDim2.new(0, 0, 0, 104)
+Status.BackgroundTransparency = 1
+Status.Font = Enum.Font.GothamSemibold
+Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+Status.TextSize = 11
+Status.Text = "Đang khởi động..."
 
 local BarBg = Instance.new("Frame", BG)
-BarBg.Size = UDim2.new(0.85, 0, 0, 6)[span_55](start_span)[span_55](end_span)
-BarBg.Position = UDim2.new(0.075, 0, 0, 140)[span_56](start_span)[span_56](end_span)
-BarBg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)[span_57](start_span)[span_57](end_span)
-Instance.new("UICorner", BarBg)[span_58](start_span)[span_58](end_span)
+BarBg.Size = UDim2.new(0.85, 0, 0, 6)
+BarBg.Position = UDim2.new(0.075, 0, 0, 140)
+BarBg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", BarBg)
 
 local BarFill = Instance.new("Frame", BarBg)
-BarFill.Size = UDim2.new(0, 0, 1, 0)[span_59](start_span)[span_59](end_span)
-BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)[span_60](start_span)[span_60](end_span)
-Instance.new("UICorner", BarFill)[span_61](start_span)[span_61](end_span)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
+Instance.new("UICorner", BarFill)
 
 local PercentLabel = Instance.new("TextLabel", BG)
-PercentLabel.Size = UDim2.new(1, 0, 0, 16)[span_62](start_span)[span_62](end_span)
-PercentLabel.Position = UDim2.new(0, 0, 0, 152)[span_63](start_span)[span_63](end_span)
-PercentLabel.BackgroundTransparency = 1[span_64](start_span)[span_64](end_span)
-PercentLabel.Font = Enum.Font.Code[span_65](start_span)[span_65](end_span)
-PercentLabel.TextColor3 = Color3.fromRGB(0, 255, 200)[span_66](start_span)[span_66](end_span)
-PercentLabel.TextSize = 10[span_67](start_span)[span_67](end_span)
-PercentLabel.Text = "0%[span_68](start_span)"[span_68](end_span)
+PercentLabel.Size = UDim2.new(1, 0, 0, 16)
+PercentLabel.Position = UDim2.new(0, 0, 0, 152)
+PercentLabel.BackgroundTransparency = 1
+PercentLabel.Font = Enum.Font.Code
+PercentLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+PercentLabel.TextSize = 10
+PercentLabel.Text = "0%"
+
+warn("✨ [DIAGNOSTIC] 5. Toàn bộ UI đã dựng xong lắp ráp vào luồng vẽ. Chuẩn bị chạy Intro...")
 
 -- ==========================================
 -- ✨ THỰC THI HIỆU ỨNG POP-UP INTRO
@@ -148,50 +151,50 @@ local introTween = TweenService:Create(BG, introInfo, {
     Position = UDim2.new(0.5, -160, 0.5, -100)
 })
 introTween:Play()
-introTween.Completed:Wait() -- Đóng băng luồng để đợi bung UI xong mới chạy phần trăm
+introTween.Completed:Wait()
 
 BG.ClipsDescendants = false
+warn("✨ [DIAGNOSTIC] 6. Hiệu ứng Bung Pop-up hoàn tất! Bắt đầu trượt % tải...")
 
 -- ==========================================
--- 📶 TIẾN TRÌNH CHẠY % LÀM MẪU
+-- 📶 TIẾN TRÌNH CHẠY BIẾN ĐỔI %
 -- ==========================================
 local steps = {
-    {status = "Đang tải giao diện...", progress = 0.30, delay = 0.5},[span_69](start_span)[span_69](end_span)
-    {status = "Đang cấu hình hệ thống...", progress = 0.70, delay = 0.5},
-    {status = "Hoàn tất!", progress = 1.00, delay = 0.4},[span_70](start_span)[span_70](end_span)
+    {status = "Đang kết nối cơ sở dữ liệu...", progress = 0.35, delay = 0.5},
+    {status = "Đang cấu hình giao diện...", progress = 0.75, delay = 0.5},
+    {status = "Hệ thống đã sẵn sàng!", progress = 1.00, delay = 0.4}
 }
 
 for _, step in ipairs(steps) do
-    Status.Text = step.status[span_71](start_span)[span_71](end_span)
-    TweenService:Create(BarFill, TweenInfo.new(step.delay, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step.progress, 0, 1, 0)}):Play()[span_72](start_span)[span_72](end_span)
-    local startPct = tonumber(PercentLabel.Text:match("%d+")) or 0[span_73](start_span)[span_73](end_span)
-    local endPct = math.floor(step.progress * 100)[span_74](start_span)[span_74](end_span)
+    Status.Text = step.status
+    TweenService:Create(BarFill, TweenInfo.new(step.delay, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(step.progress, 0, 1, 0)}):Play()
+    local startPct = tonumber(PercentLabel.Text:match("%d+")) or 0
+    local endPct = math.floor(step.progress * 100)
     for i = startPct, endPct do
-        PercentLabel.Text = i .. "%[span_75](start_span)"[span_75](end_span)
-        task.wait(step.delay / math.max(endPct - startPct, 1))[span_76](start_span)[span_76](end_span)
+        PercentLabel.Text = i .. "%"
+        task.wait(step.delay / math.max(endPct - startPct, 1))
     end
 end
 
-task.wait(0.2)[span_77](start_span)[span_77](end_span)
+task.wait(0.2)
+warn("✨ [DIAGNOSTIC] 7. Đạt 100%! Bắt đầu chạy hiệu ứng Fade-out ẩn menu chờ...")
 
 -- ==========================================
--- 🍃 FADE OUT & DESTROY
+-- 🍃 FADE OUT HOÀN TẤT
 -- ==========================================
-local fadeTime = 0.3[span_78](start_span)[span_78](end_span)
-TweenService:Create(BG, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()[span_79](start_span)[span_79](end_span)
-TweenService:Create(Stroke, TweenInfo.new(fadeTime), {Transparency = 1}):Play()[span_80](start_span)[span_80](end_span)
-for _, obj in ipairs(BG:GetDescendants()) do[span_81](start_span)[span_81](end_span)
-    if obj:IsA("TextLabel") then[span_82](start_span)[span_82](end_span)
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()[span_83](start_span)[span_83](end_span)
-    elseif obj:IsA("Frame") then[span_84](start_span)[span_84](end_span)
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()[span_85](start_span)[span_85](end_span)
-    elseif obj:IsA("UIStroke") then[span_86](start_span)[span_86](end_span)
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {Transparency = 1}):Play()[span_87](start_span)[span_87](end_span)
-    elseif obj:IsA("ImageLabel") then[span_88](start_span)[span_88](end_span)
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {ImageTransparency = 1}):Play()[span_89](start_span)[span_89](end_span)
+local fadeTime = 0.3
+TweenService:Create(BG, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
+TweenService:Create(Stroke, TweenInfo.new(fadeTime), {Transparency = 1}):Play()
+for _, obj in ipairs(BG:GetDescendants()) do
+    if obj:IsA("TextLabel") then
+        TweenService:Create(obj, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+    elseif obj:IsA("Frame") then
+        TweenService:Create(obj, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
+    elseif obj:IsA("UIStroke") then
+        TweenService:Create(obj, TweenInfo.new(fadeTime), {Transparency = 1}):Play()
     end
 end
-task.wait(fadeTime)[span_90](start_span)[span_90](end_span)
-LoadGui:Destroy()[span_91](start_span)[span_91](end_span)
+task.wait(fadeTime)
+LoadGui:Destroy()
 
-print("🎉 ZinNeeLoader: Hoàn thành hiệu ứng, menu chính đã sẵn sàng!")[span_92](start_span)[span_92](end_span)
+print("🎉 [DIAGNOSTIC] ĐÃ HOÀN THÀNH TOÀN BỘ TIẾN TRÌNH LOADER CHẠY AN TOÀN!")
