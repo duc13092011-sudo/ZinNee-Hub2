@@ -1,61 +1,35 @@
--- [[ ZINNEE HUB - LOADING SCREEN (ULTRA SAFE & DIAGNOSTIC VERSION) ]] --
-warn("✨ [DIAGNOSTIC] 1. Script bắt đầu chạy...")
+-- [[ ZINNEE HUB - LOADING SCREEN (SIGNATURE OUTRO EDITION) ]] --
+print("⚙️ ZinNeeLoader: Khởi động phiên bản hoạt ảnh đóng mở đối xứng...")
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-
--- Chống kẹt: Đợi cho đến khi hệ thống nhận diện được Người chơi
 local LocalPlayer = Players.LocalPlayer
-local attempts = 0
-while not LocalPlayer and attempts < 100 do
-    task.wait(0.1)
-    LocalPlayer = Players.LocalPlayer
-    attempts = attempts + 1
-end
 
-if not LocalPlayer then
-    warn("❌ [DIAGNOSTIC] LỖI: Không tìm thấy LocalPlayer!")
-    return
-end
-warn("✨ [DIAGNOSTIC] 2. Đã nhận diện Player: " .. tostring(LocalPlayer.Name))
-
--- Chống nghẽn vô hạn: Đợi PlayerGui tối đa 10 giây
+-- Kiểm tra và dọn dẹp bộ nhớ chống trùng lặp UI
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
-if not PlayerGui then
-    warn("❌ [DIAGNOSTIC] LỖI: Game không chịu tải phân vùng PlayerGui!")
-    return
-end
-warn("✨ [DIAGNOSTIC] 3. Đã tìm thấy PlayerGui thành công!")
+if not PlayerGui then return end
+if PlayerGui:FindFirstChild("ZinNeeLoader") then PlayerGui.ZinNeeLoader:Destroy() end
 
--- Dọn dẹp bản cũ nếu có để tránh xung đột dữ liệu
-if PlayerGui:FindFirstChild("ZinNeeLoader") then 
-    PlayerGui.ZinNeeLoader:Destroy() 
-    warn("🧹 [DIAGNOSTIC] Đã dọn dẹp bộ Loader cũ kẹt trong máy.")
-end
-
--- Khởi tạo ScreenGui trực tiếp vào PlayerGui (Bỏ qua CoreGui để chống chết luồng)
 local LoadGui = Instance.new("ScreenGui")
 LoadGui.Name = "ZinNeeLoader"
 LoadGui.ResetOnSpawn = false
 LoadGui.Parent = PlayerGui
-warn("✨ [DIAGNOSTIC] 4. Đã khởi tạo ScreenGui thành công!")
 
--- Cấu hình hiển thị chữ thay thế
-local LOGO_TEXT = "ZN"
-
--- Khung nền chính
+-- ==========================================
+-- 🎨 THIẾT KẾ KHUNG UI CHÍNH
+-- ==========================================
 local BG = Instance.new("Frame", LoadGui)
-BG.Size = UDim2.new(0, 0, 0, 0) -- Bắt đầu từ 0 để bung ra
+BG.Size = UDim2.new(0, 0, 0, 0) -- Khởi tạo từ 0 để bung ra
 BG.Position = UDim2.new(0.5, 0, 0.5, 0)
 BG.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-BG.ClipsDescendants = true
+BG.ClipsDescendants = true -- Khóa các phần tử con không cho tràn viền khi co giãn
 Instance.new("UICorner", BG).CornerRadius = UDim.new(0, 10)
 
 local Stroke = Instance.new("UIStroke", BG)
 Stroke.Color = Color3.fromRGB(140, 0, 255)
 Stroke.Thickness = 1.5
 
--- Vòng giữ Logo
+-- [Các thành phần nội dung: Logo, Vòng xoay, Chữ nghĩa]
 local LogoHolder = Instance.new("Frame", BG)
 LogoHolder.Size = UDim2.new(0, 56, 0, 56)
 LogoHolder.Position = UDim2.new(0.5, -28, 0, 14)
@@ -72,9 +46,8 @@ LogoFallbackText.BackgroundTransparency = 1
 LogoFallbackText.Font = Enum.Font.GothamBold
 LogoFallbackText.TextColor3 = Color3.fromRGB(140, 0, 255)
 LogoFallbackText.TextSize = 20
-LogoFallbackText.Text = LOGO_TEXT
+LogoFallbackText.Text = "ZN"
 
--- Vòng xoay neon xanh
 local Spinner = Instance.new("Frame", LogoHolder)
 Spinner.Size = UDim2.new(1, 8, 1, 8)
 Spinner.Position = UDim2.new(0, -4, 0, -4)
@@ -91,7 +64,6 @@ task.spawn(function()
     end
 end)
 
--- Tiêu đề RGB
 local Title = Instance.new("TextLabel", BG)
 Title.Size = UDim2.new(1, 0, 0, 24)
 Title.Position = UDim2.new(0, 0, 0, 76)
@@ -110,7 +82,6 @@ task.spawn(function()
     end
 end)
 
--- Các thông số tiến trình thanh loading
 local Status = Instance.new("TextLabel", BG)
 Status.Size = UDim2.new(1, 0, 0, 20)
 Status.Position = UDim2.new(0, 0, 0, 104)
@@ -140,10 +111,8 @@ PercentLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 PercentLabel.TextSize = 10
 PercentLabel.Text = "0%"
 
-warn("✨ [DIAGNOSTIC] 5. Toàn bộ UI đã dựng xong lắp ráp vào luồng vẽ. Chuẩn bị chạy Intro...")
-
 -- ==========================================
--- ✨ THỰC THI HIỆU ỨNG POP-UP INTRO
+-- 🎬 BIỂU DIỄN: INTRO BUNG NẢY (POP-UP)
 -- ==========================================
 local introInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local introTween = TweenService:Create(BG, introInfo, {
@@ -152,17 +121,15 @@ local introTween = TweenService:Create(BG, introInfo, {
 })
 introTween:Play()
 introTween.Completed:Wait()
-
 BG.ClipsDescendants = false
-warn("✨ [DIAGNOSTIC] 6. Hiệu ứng Bung Pop-up hoàn tất! Bắt đầu trượt % tải...")
 
 -- ==========================================
--- 📶 TIẾN TRÌNH CHẠY BIẾN ĐỔI %
+-- 📶 CHẠY TIẾN TRÌNH %
 -- ==========================================
 local steps = {
-    {status = "Đang kết nối cơ sở dữ liệu...", progress = 0.35, delay = 0.5},
-    {status = "Đang cấu hình giao diện...", progress = 0.75, delay = 0.5},
-    {status = "Hệ thống đã sẵn sàng!", progress = 1.00, delay = 0.4}
+    {status = "Đang kiểm tra phân vùng...", progress = 0.40, delay = 0.5},
+    {status = "Đang tối ưu hóa UI mượt mà...", progress = 0.80, delay = 0.5},
+    {status = "Kích hoạt thành công!", progress = 1.00, delay = 0.3}
 }
 
 for _, step in ipairs(steps) do
@@ -176,25 +143,41 @@ for _, step in ipairs(steps) do
     end
 end
 
-task.wait(0.2)
-warn("✨ [DIAGNOSTIC] 7. Đạt 100%! Bắt đầu chạy hiệu ứng Fade-out ẩn menu chờ...")
+task.wait(0.3)
 
 -- ==========================================
--- 🍃 FADE OUT HOÀN TẤT
+-- 🛠️ ĐOẠN CUỐI ĐƯỢC SỬA ĐỔI: THU NHỎ NÉN TÂM (OUTRO TWEEN)
 -- ==========================================
-local fadeTime = 0.3
-TweenService:Create(BG, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
-TweenService:Create(Stroke, TweenInfo.new(fadeTime), {Transparency = 1}):Play()
+BG.ClipsDescendants = true -- Khóa lại để chữ nghĩa co cụm theo khung hình khi thu nhỏ
+local outroTime = 0.4
+
+-- Luồng 1: Ép khung hình thu nhỏ biến mất ngược về tâm (Dùng EasingStyle.Back để tạo độ nén)
+local outroTween = TweenService:Create(BG, TweenInfo.new(outroTime, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+    Size = UDim2.new(0, 0, 0, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 1
+})
+outroTween:Play()
+
+-- Luồng 2: Làm mờ dải viền Stroke cùng lúc
+TweenService:Create(Stroke, TweenInfo.new(outroTime), {Transparency = 1}):Play()
+
+-- Luồng 3: Quét qua làm mờ toàn bộ các chi tiết chữ, ảnh bên trong
 for _, obj in ipairs(BG:GetDescendants()) do
     if obj:IsA("TextLabel") then
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {TextTransparency = 1}):Play()
+        TweenService:Create(obj, TweenInfo.new(outroTime - 0.1), {TextTransparency = 1}):Play()
     elseif obj:IsA("Frame") then
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(obj, TweenInfo.new(outroTime - 0.1), {BackgroundTransparency = 1}):Play()
     elseif obj:IsA("UIStroke") then
-        TweenService:Create(obj, TweenInfo.new(fadeTime), {Transparency = 1}):Play()
+        TweenService:Create(obj, TweenInfo.new(outroTime - 0.1), {Transparency = 1}):Play()
     end
 end
-task.wait(fadeTime)
+
+-- Đợi hoạt ảnh kết thúc chạy xong hoàn toàn rồi mới xóa UI khỏi bộ nhớ game
+outroTween.Completed:Wait()
 LoadGui:Destroy()
 
-print("🎉 [DIAGNOSTIC] ĐÃ HOÀN THÀNH TOÀN BỘ TIẾN TRÌNH LOADER CHẠY AN TOÀN!")
+-- ==========================================
+-- 🚀 NƠI GỌI MENU CHÍNH CỦA ÔNG
+-- ==========================================
+print("🎉 ZinNeeLoader: Đóng màn hình chờ thành công! Sẵn sàng khởi động Menu tổng.")
